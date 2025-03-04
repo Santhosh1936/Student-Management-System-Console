@@ -1,0 +1,231 @@
+import java.io.*;
+import java.util.*;
+
+class Student implements Serializable {
+    int ID;
+    String Name;
+    String dpt;
+    int Age;
+
+    public Student(int ID, String Name, String dpt, int Age) {
+        this.ID = ID;
+        this.Name = Name;
+        this.dpt = dpt;
+        this.Age = Age;
+    }
+}
+
+public class Student1 {
+    static void authenticateAdmin() {
+        Scanner ss = new Scanner(System.in);
+        System.out.print("Enter Admin Password: ");
+        String password = ss.nextLine();
+
+        if (password.equals(ADMIN_PASSWORD)) {
+            isAuthenticated = true;
+            System.out.println("Authentication successful! ✅");
+        } else {
+            System.out.println("Authentication failed! ❌ Exiting...");
+            System.exit(0);
+        }
+    }
+
+    private static final String FILE_NAME = "students.dat";
+    private static final String ADMIN_PASSWORD = "admin123";
+    private static boolean isAuthenticated = false;
+
+    public static void clearScreen() {
+        try {
+            if (System.getProperty("os.name").contains("Windows")) {
+                new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
+            } else {
+                System.out.print("\033[H\033[2J");
+                System.out.flush();
+            }
+        } catch (Exception e) {
+            System.out.println("Error clearing screen.");
+        }
+    }
+
+
+    public static void loadingEffect(String message) {
+        System.out.print(message);
+        try {
+            for (int i = 0; i < 3; i++) {
+                Thread.sleep(500);
+                System.out.print(".");
+            }
+            System.out.println();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    static void viewStudents(List<Student> s) {
+        if (s.isEmpty()) {
+            System.out.println("No students found!");
+            return;
+        }
+        System.out.printf("%-8s %-20s %-15s %-5s%n", "ID", "Name", "Department", "Age");
+        System.out.println("--------------------------------------------------");
+        for (Student m : s) {
+            System.out.printf("%-8d %-20s %-15s %-5d%n", m.ID, m.Name, m.dpt, m.Age);
+        }
+    }
+
+    static void searchStudent(List<Student> s) {
+        Scanner ss = new Scanner(System.in);
+        System.out.println("Search by:");
+        System.out.println("1. Name");
+        System.out.println("2. Department");
+        System.out.print("Enter your choice: ");
+        int choice = ss.nextInt();
+        ss.nextLine();
+
+        List<Student> results = new ArrayList<>();
+
+        switch (choice) {
+            case 1:
+                System.out.print("Enter student name: ");
+                String name = ss.nextLine();
+                for (Student m : s) {
+                    if (m.Name.equalsIgnoreCase(name)) {
+                        results.add(m);
+                    }
+                }
+                break;
+            case 2:
+                System.out.print("Enter department: ");
+                String dpt = ss.nextLine();
+                for (Student m : s) {
+                    if (m.dpt.equalsIgnoreCase(dpt)) {
+                        results.add(m);
+                    }
+                }
+                break;
+            default:
+                System.out.println("Invalid choice!");
+                return;
+        }
+
+        if (results.isEmpty()) {
+            System.out.println("No matching students found!");
+        } else {
+            viewStudents(results);
+        }
+    }
+
+    static void addStudent(List<Student> s) {
+        if (!isAuthenticated) return;
+        Scanner ss = new Scanner(System.in);
+        System.out.println("Enter the ID of the student: ");
+        int id = ss.nextInt();
+
+        for (Student m : s) {
+            if (m.ID == id) {
+                System.out.println("Student with ID " + id + " is already in the list!");
+                return;
+            }
+        }
+
+        ss.nextLine();
+        System.out.println("Enter the name of the student: ");
+        String name = ss.nextLine();
+        System.out.println("Enter the department of the student: ");
+        String dpt = ss.next();
+        System.out.println("Enter the age of the student: ");
+        int age = ss.nextInt();
+        s.add(new Student(id, name, dpt, age));
+        System.out.println("Student added successfully!");
+    }
+
+    static void deleteStudent(List<Student> s) {
+        Scanner ss = new Scanner(System.in);
+        System.out.print("Enter student ID to delete: ");
+        int id = ss.nextInt();
+        s.removeIf(student -> student.ID == id);
+        System.out.println("Student deleted successfully!");
+    }
+
+    static void updateStudent(List<Student> s) {
+        Scanner ss = new Scanner(System.in);
+        System.out.print("Enter student ID to update: ");
+        int id = ss.nextInt();
+        ss.nextLine();
+        for (Student student : s) {
+            if (student.ID == id) {
+                System.out.print("Enter new name (or press Enter to keep unchanged): ");
+                String name = ss.nextLine();
+                if (!name.isEmpty()) student.Name = name;
+                System.out.print("Enter new department (or press Enter to keep unchanged): ");
+                String dpt = ss.nextLine();
+                if (!dpt.isEmpty()) student.dpt = dpt;
+                System.out.print("Enter new age (or press Enter to keep unchanged): ");
+                String ageStr = ss.nextLine();
+                if (!ageStr.isEmpty()) student.Age = Integer.parseInt(ageStr);
+                System.out.println("Student updated successfully!");
+                return;
+            }
+        }
+        System.out.println("Student not found!");
+    }
+
+    static List<Student> loadFromFile() {
+        List<Student> students = new ArrayList<>();
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(FILE_NAME))) {
+            Object obj = ois.readObject();
+            if (obj instanceof List<?>) {
+                students = (List<Student>) obj;
+            }
+            students.sort(Comparator.comparingInt(s -> s.ID));
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("No previous data found.");
+        }
+        return students;
+    }
+
+
+    static void saveToFile(List<Student> students) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(FILE_NAME))) {
+            oos.writeObject(students);
+            System.out.println("Data saved successfully!");
+        } catch (IOException e) {
+            System.out.println("Error saving data.");
+        }
+    }
+
+    public static void main(String[] args) {
+        Scanner ss = new Scanner(System.in);
+        List<Student> studentDetails = loadFromFile();
+
+        authenticateAdmin();
+
+        while (true) {
+            clearScreen();
+            System.out.println("\n📚 Student Management System");
+            System.out.println("1. Add Student");
+            System.out.println("2. View Students");
+            System.out.println("3. Search Student");
+            System.out.println("4. Update Student");
+            System.out.println("5. Delete Student");
+            System.out.println("6. Save & Exit");
+            System.out.print("Enter your choice: ");
+            int choice = ss.nextInt();
+            switch (choice) {
+                case 1 -> addStudent(studentDetails);
+                case 2 -> viewStudents(studentDetails);
+                case 3 -> searchStudent(studentDetails);
+                case 4 -> updateStudent(studentDetails);
+                case 5 -> deleteStudent(studentDetails);
+                case 6 -> {
+                    loadingEffect("Saving data");
+                    saveToFile(studentDetails);
+                    System.out.println("Exiting... 👋");
+                    ss.close();
+                    System.exit(0);
+                }
+                default -> System.out.println("Invalid choice! Try again.");
+            }
+        }
+    }
+}
